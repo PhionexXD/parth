@@ -1,0 +1,1205 @@
+import pygame
+import random
+import math
+import sys
+
+# Initialize pygame
+pygame.init()
+pygame.font.init()
+
+# Game Constants
+SCREEN_WIDTH = 420
+SCREEN_HEIGHT = 650
+FPS = 60
+
+# Palette & Base Colors
+WHITE = (255, 255, 255)
+BLACK = (20, 20, 20)
+GOLD = (255, 215, 0)
+CYAN_ACCENT = (0, 230, 255)
+CRIMSON = (235, 60, 60)
+EMERALD = (46, 204, 113)
+PURPLE_ACCENT = (165, 90, 240)
+
+# Setup Display
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Flappy Bird HD - Complete Edition")
+clock = pygame.time.Clock()
+
+# Fonts
+title_font = pygame.font.SysFont("Segoe UI", 34, bold=True)
+score_font = pygame.font.SysFont("Segoe UI", 32, bold=True)
+hud_font = pygame.font.SysFont("Segoe UI", 17, bold=True)
+btn_font = pygame.font.SysFont("Segoe UI", 16, bold=True)
+small_font = pygame.font.SysFont("Segoe UI", 13, bold=True)
+checkpoint_font = pygame.font.SysFont("Segoe UI", 20, bold=True)
+
+# ----------------- SKINS DATABASE -----------------
+SKINS = [
+    {
+        "id": "classic",
+        "name": "Classic Gold",
+        "price": 0,
+        "unlocked": True,
+        "body_grad_1": (220, 140, 20),
+        "body_grad_2": (255, 215, 40),
+        "body_grad_3": (255, 245, 140),
+        "belly": (255, 255, 240),
+        "blush": (255, 130, 130, 160),
+        "beak_1": (220, 70, 20),
+        "beak_2": (255, 150, 40),
+        "wing_base": (210, 120, 15),
+        "wing_inner": (255, 255, 255, 220),
+        "trail_color": (255, 240, 160),
+    },
+    {
+            "id": "classic",
+            "name": "Classic nnng",
+            "price": 2000,
+            "unlocked": True,
+            "body_grad_1": (342, 654, 56),
+            "body_grad_2": (675, 656, 64),
+            "body_grad_3": (675, 454, 140),
+            "belly": (453,455, 254),
+            "blush": (785, 130, 130, 160),
+            "beak_1": (986, 70, 20),
+            "beak_2": (857, 150, 40),
+            "wing_base": (675, 120, 15),
+            "wing_inner": (956, 255, 255, 220),
+            "trail_color": (976, 240, 160),
+        },
+    {
+        "id": "phoenix",
+        "name": "Phoenix Flame",
+        "price": 100,
+        "unlocked": False,
+        "body_grad_1": (160, 10, 10),
+        "body_grad_2": (235, 45, 30),
+        "body_grad_3": (255, 140, 40),
+        "belly": (255, 210, 120),
+        "blush": (255, 70, 40, 160),
+        "beak_1": (240, 180, 20),
+        "beak_2": (255, 230, 80),
+        "wing_base": (170, 20, 20),
+        "wing_inner": (255, 120, 30, 220),
+        "trail_color": (255, 100, 30),
+    },
+    {
+        "id": "cyber",
+        "name": "Cyber Falcon",
+        "price": 250,
+        "unlocked": False,
+        "body_grad_1": (15, 40, 60),
+        "body_grad_2": (25, 95, 130),
+        "body_grad_3": (0, 235, 245),
+        "belly": (200, 255, 255),
+        "blush": (0, 255, 200, 160),
+        "beak_1": (0, 170, 200),
+        "beak_2": (0, 255, 255),
+        "wing_base": (15, 60, 90),
+        "wing_inner": (0, 240, 255, 220),
+        "trail_color": (0, 240, 255),
+    },
+    {
+        "id": "phantom",
+        "name": "Ghost Phantom",
+        "price": 500,
+        "unlocked": False,
+        "body_grad_1": (45, 20, 75),
+        "body_grad_2": (120, 60, 180),
+        "body_grad_3": (195, 140, 255),
+        "belly": (240, 215, 255),
+        "blush": (210, 110, 255, 160),
+        "beak_1": (120, 40, 180),
+        "beak_2": (220, 120, 255),
+        "wing_base": (65, 25, 110),
+        "wing_inner": (180, 120, 255, 220),
+        "trail_color": (190, 110, 255),
+    },
+]
+
+# ----------------- 6 DISTINCT LANDSCAPES & BIOMES -----------------
+THEMES = [
+    {
+        "name": "Amazonian Jungle",
+        "landscape_type": "jungle",
+        "sky_top": (18, 55, 38),
+        "sky_bottom": (75, 140, 95),
+        "scenery_back": (25, 70, 48),
+        "scenery_accent": (45, 185, 110),
+        "pipe_light": (135, 220, 50),
+        "pipe_base": (75, 160, 30),
+        "pipe_dark": (40, 105, 15),
+        "pipe_shadow": (20, 60, 8),
+        "pipe_rim": (175, 240, 90),
+        "ground_base": (80, 55, 30),
+        "grass_top": (85, 180, 40),
+        "grass_shadow": (50, 115, 20),
+        "star_alpha": 0,
+        "cloud_alpha": 120,
+    },
+    {
+        "name": "Alpine Mountain Village",
+        "landscape_type": "village",
+        "sky_top": (50, 90, 160),
+        "sky_bottom": (180, 215, 240),
+        "scenery_back": (85, 115, 150),
+        "scenery_accent": (255, 230, 140),
+        "pipe_light": (180, 130, 80),
+        "pipe_base": (135, 85, 45),
+        "pipe_dark": (90, 50, 25),
+        "pipe_shadow": (55, 30, 15),
+        "pipe_rim": (215, 165, 110),
+        "ground_base": (175, 145, 110),
+        "grass_top": (100, 185, 75),
+        "grass_shadow": (60, 125, 45),
+        "star_alpha": 0,
+        "cloud_alpha": 220,
+    },
+    {
+        "name": "Cyber Metropolis",
+        "landscape_type": "city",
+        "sky_top": (20, 5, 45),
+        "sky_bottom": (210, 35, 130),
+        "scenery_back": (45, 15, 70),
+        "scenery_accent": (0, 255, 240),
+        "pipe_light": (0, 240, 255),
+        "pipe_base": (160, 30, 175),
+        "pipe_dark": (95, 10, 110),
+        "pipe_shadow": (40, 5, 60),
+        "pipe_rim": (255, 110, 235),
+        "ground_base": (35, 10, 55),
+        "grass_top": (235, 40, 145),
+        "grass_shadow": (135, 20, 85),
+        "star_alpha": 180,
+        "cloud_alpha": 70,
+    },
+    {
+        "name": "Sahara Pyramids",
+        "landscape_type": "desert",
+        "sky_top": (20, 15, 40),
+        "sky_bottom": (215, 120, 55),
+        "scenery_back": (160, 85, 40),
+        "scenery_accent": (255, 215, 120),
+        "pipe_light": (245, 195, 85),
+        "pipe_base": (190, 135, 40),
+        "pipe_dark": (130, 85, 20),
+        "pipe_shadow": (75, 45, 10),
+        "pipe_rim": (255, 225, 130),
+        "ground_base": (210, 155, 75),
+        "grass_top": (235, 180, 90),
+        "grass_shadow": (170, 115, 45),
+        "star_alpha": 190,
+        "cloud_alpha": 60,
+    },
+    {
+        "name": "Volcanic Underworld",
+        "landscape_type": "volcano",
+        "sky_top": (18, 5, 5),
+        "sky_bottom": (195, 40, 10),
+        "scenery_back": (45, 12, 12),
+        "scenery_accent": (255, 160, 0),
+        "pipe_light": (255, 180, 35),
+        "pipe_base": (175, 45, 15),
+        "pipe_dark": (95, 20, 5),
+        "pipe_shadow": (45, 10, 5),
+        "pipe_rim": (255, 215, 75),
+        "ground_base": (40, 15, 15),
+        "grass_top": (225, 65, 10),
+        "grass_shadow": (130, 25, 5),
+        "star_alpha": 110,
+        "cloud_alpha": 40,
+    },
+    {
+        "name": "Candy Kingdom",
+        "landscape_type": "candy",
+        "sky_top": (145, 185, 255),
+        "sky_bottom": (255, 180, 220),
+        "scenery_back": (215, 155, 230),
+        "scenery_accent": (255, 255, 200),
+        "pipe_light": (255, 150, 190),
+        "pipe_base": (230, 85, 140),
+        "pipe_dark": (175, 45, 100),
+        "pipe_shadow": (115, 25, 65),
+        "pipe_rim": (255, 210, 235),
+        "ground_base": (245, 200, 220),
+        "grass_top": (115, 225, 205),
+        "grass_shadow": (70, 170, 155),
+        "star_alpha": 30,
+        "cloud_alpha": 220,
+    },
+]
+
+
+def lerp_color(c1, c2, t):
+    return tuple(int(a + (b - a) * t) for a, b in zip(c1, c2))
+
+
+def interpolate_theme(t1, t2, t):
+    dominant_landscape = t2["landscape_type"] if t > 0.5 else t1["landscape_type"]
+    blended = {
+        "name": t2["name"] if t > 0.5 else t1["name"],
+        "landscape_type": dominant_landscape,
+    }
+    for key in t1:
+        if key in ("name", "landscape_type"):
+            continue
+        val1 = t1[key]
+        val2 = t2[key]
+        if isinstance(val1, tuple):
+            blended[key] = lerp_color(val1, val2, t)
+        else:
+            blended[key] = val1 + (val2 - val1) * t
+    return blended
+
+
+def render_sky(surface, theme):
+    top = theme["sky_top"]
+    bot = theme["sky_bottom"]
+    for y in range(0, SCREEN_HEIGHT, 2):
+        ratio = y / SCREEN_HEIGHT
+        r = int(top[0] * (1 - ratio) + bot[0] * ratio)
+        g = int(top[1] * (1 - ratio) + bot[1] * ratio)
+        b = int(top[2] * (1 - ratio) + bot[2] * ratio)
+        pygame.draw.rect(surface, (r, g, b), (0, y, SCREEN_WIDTH, 2))
+
+
+class Particle:
+    def __init__(self, x, y, vx, vy, color, radius, decay=0.96, is_feather=False):
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+        self.color = color
+        self.radius = radius
+        self.alpha = 255
+        self.decay = decay
+        self.is_feather = is_feather
+        self.angle = random.uniform(0, 360)
+        self.rot_speed = random.uniform(-8, 8)
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        if self.is_feather:
+            self.vy += 0.12
+            self.vx *= 0.98
+            self.angle += self.rot_speed
+        self.alpha *= self.decay
+        self.radius = max(0, self.radius - 0.05)
+
+    def draw(self, surface):
+        if self.alpha > 10 and self.radius > 0.5:
+            p_surf = pygame.Surface((int(self.radius * 3) + 4, int(self.radius * 3) + 4), pygame.SRCALPHA)
+            c = (*self.color[:3], int(self.alpha))
+            center = (int(self.radius * 1.5) + 2, int(self.radius * 1.5) + 2)
+            if self.is_feather:
+                pygame.draw.ellipse(p_surf, c, (center[0] - self.radius, center[1] - self.radius / 2, self.radius * 2, self.radius))
+            else:
+                pygame.draw.circle(p_surf, c, center, int(self.radius))
+            surface.blit(p_surf, (self.x - center[0], self.y - center[1]))
+
+
+class Cloud:
+    def __init__(self, x, y, speed, scale):
+        self.x = x
+        self.y = y
+        self.speed = speed
+        self.scale = scale
+
+    def update(self):
+        self.x -= self.speed
+        if self.x < -160:
+            self.x = SCREEN_WIDTH + random.randint(20, 100)
+            self.y = random.randint(30, 180)
+
+    def draw(self, surface, alpha):
+        c_surf = pygame.Surface((150, 60), pygame.SRCALPHA)
+        color = (255, 255, 255, int(alpha))
+        pygame.draw.circle(c_surf, color, (40, 35), int(22 * self.scale))
+        pygame.draw.circle(c_surf, color, (70, 25), int(30 * self.scale))
+        pygame.draw.circle(c_surf, color, (105, 35), int(20 * self.scale))
+        pygame.draw.ellipse(c_surf, color, (20, 25, int(105 * self.scale), int(30 * self.scale)))
+        surface.blit(c_surf, (self.x, self.y))
+
+
+class DynamicLandscape:
+    def __init__(self):
+        self.stars = [(random.randint(0, SCREEN_WIDTH), random.randint(10, 280), random.randint(1, 2)) for _ in range(40)]
+        self.buildings = []
+        x = 0
+        while x < SCREEN_WIDTH + 100:
+            w = random.randint(35, 60)
+            h = random.randint(70, 160)
+            self.buildings.append((x, SCREEN_HEIGHT - 90 - h, w, h))
+            x += w - random.randint(0, 5)
+
+        self.mountains = [
+            [(0, SCREEN_HEIGHT - 90), (100, SCREEN_HEIGHT - 220), (220, SCREEN_HEIGHT - 90)],
+            [(160, SCREEN_HEIGHT - 90), (290, SCREEN_HEIGHT - 260), (420, SCREEN_HEIGHT - 90)],
+            [(320, SCREEN_HEIGHT - 90), (410, SCREEN_HEIGHT - 190), (SCREEN_WIDTH + 60, SCREEN_HEIGHT - 90)],
+        ]
+        self.cabins = [
+            (50, SCREEN_HEIGHT - 145, 55, 40),
+            (185, SCREEN_HEIGHT - 155, 65, 45),
+            (315, SCREEN_HEIGHT - 140, 50, 38),
+        ]
+
+        self.jungle_trees = [
+            (25, SCREEN_HEIGHT - 90, 18, 170, 55),
+            (130, SCREEN_HEIGHT - 90, 22, 210, 75),
+            (245, SCREEN_HEIGHT - 90, 16, 160, 50),
+            (355, SCREEN_HEIGHT - 90, 24, 225, 80),
+        ]
+
+        self.pyramids = [
+            [(30, SCREEN_HEIGHT - 90), (140, SCREEN_HEIGHT - 210), (250, SCREEN_HEIGHT - 90)],
+            [(210, SCREEN_HEIGHT - 90), (320, SCREEN_HEIGHT - 240), (430, SCREEN_HEIGHT - 90)],
+        ]
+
+        self.volcano_crags = [
+            [(0, SCREEN_HEIGHT - 90), (80, SCREEN_HEIGHT - 240), (110, SCREEN_HEIGHT - 190), (180, SCREEN_HEIGHT - 90)],
+            [(140, SCREEN_HEIGHT - 90), (230, SCREEN_HEIGHT - 270), (280, SCREEN_HEIGHT - 200), (360, SCREEN_HEIGHT - 90)],
+            [(300, SCREEN_HEIGHT - 90), (380, SCREEN_HEIGHT - 230), (SCREEN_WIDTH + 40, SCREEN_HEIGHT - 90)],
+        ]
+
+        self.candy_hills = [
+            (60, SCREEN_HEIGHT - 90, 65, 85),
+            (175, SCREEN_HEIGHT - 90, 85, 115),
+            (295, SCREEN_HEIGHT - 90, 70, 95),
+            (385, SCREEN_HEIGHT - 90, 60, 75),
+        ]
+
+    def draw(self, surface, theme):
+        if theme["star_alpha"] > 5:
+            for sx, sy, sr in self.stars:
+                s_surf = pygame.Surface((sr * 2 + 2, sr * 2 + 2), pygame.SRCALPHA)
+                pygame.draw.circle(s_surf, (255, 255, 255, int(theme["star_alpha"])), (sr + 1, sr + 1), sr)
+                surface.blit(s_surf, (sx - sr, sy - sr))
+
+        l_type = theme["landscape_type"]
+        back_col = theme["scenery_back"]
+        accent_col = theme["scenery_accent"]
+
+        if l_type == "jungle":
+            for tx, base_y, tw, th, crown_r in self.jungle_trees:
+                pygame.draw.rect(surface, back_col, (tx - tw // 2, base_y - th, tw, th))
+                pygame.draw.circle(surface, back_col, (tx, base_y - th), crown_r)
+                pygame.draw.circle(surface, accent_col, (tx + 10, base_y - th - 10), crown_r - 18)
+                pygame.draw.circle(surface, back_col, (tx - 18, base_y - th + 8), crown_r - 12)
+
+        elif l_type == "village":
+            for pts in self.mountains:
+                pygame.draw.polygon(surface, back_col, pts)
+                peak = pts[1]
+                snow_pts = [peak, (peak[0] - 24, peak[1] + 32), (peak[0], peak[1] + 24), (peak[0] + 24, peak[1] + 32)]
+                pygame.draw.polygon(surface, (245, 250, 255), snow_pts)
+
+            for cx, cy, cw, ch in self.cabins:
+                pygame.draw.rect(surface, (60, 45, 35), (cx, cy, cw, ch))
+                roof_pts = [(cx - 8, cy), (cx + cw // 2, cy - 20), (cx + cw + 8, cy)]
+                pygame.draw.polygon(surface, back_col, roof_pts)
+                pygame.draw.rect(surface, accent_col, (cx + 12, cy + 10, 14, 14))
+                pygame.draw.rect(surface, (45, 30, 20), (cx + cw - 16, cy - 24, 8, 14))
+
+        elif l_type == "city":
+            for bx, by, bw, bh in self.buildings:
+                pygame.draw.rect(surface, back_col, (bx, by, bw, bh))
+                for wx in range(bx + 6, bx + bw - 6, 10):
+                    for wy in range(by + 10, by + bh - 10, 15):
+                        if (wx + wy) % 3 != 0:
+                            pygame.draw.rect(surface, accent_col, (wx, wy, 4, 7))
+
+        elif l_type == "desert":
+            for pts in self.pyramids:
+                pygame.draw.polygon(surface, back_col, pts)
+                shadow_pts = [pts[1], (pts[1][0] + (pts[2][0] - pts[1][0]) // 3, pts[2][1]), pts[2]]
+                pygame.draw.polygon(surface, (int(back_col[0] * 0.7), int(back_col[1] * 0.7), int(back_col[2] * 0.7)), shadow_pts)
+            pygame.draw.ellipse(surface, accent_col, (-40, SCREEN_HEIGHT - 135, SCREEN_WIDTH + 80, 75))
+
+        elif l_type == "volcano":
+            for pts in self.volcano_crags:
+                pygame.draw.polygon(surface, back_col, pts)
+                pygame.draw.line(surface, accent_col, pts[1], (pts[1][0] + 15, pts[1][1] + 65), 3)
+                pygame.draw.line(surface, accent_col, (pts[1][0] + 15, pts[1][1] + 65), (pts[1][0] - 8, pts[1][1] + 120), 2)
+
+        elif l_type == "candy":
+            for hx, hy, hw, hh in self.candy_hills:
+                pygame.draw.ellipse(surface, back_col, (hx - hw, hy - hh, hw * 2, hh * 2))
+                pygame.draw.circle(surface, accent_col, (hx, hy - hh + 15), 12)
+                pygame.draw.circle(surface, (255, 255, 255), (hx, hy - hh + 15), 6)
+
+
+class Bird:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = 17
+        self.velocity = 0
+        self.angle = 0
+        self.wing_frame = 0
+
+        self.gravity = 0.20
+        self.jump_strength = -5.0
+        self.max_fall_speed = 5.5
+
+        self.is_dead = False
+        self.death_vx = 0
+        self.death_vy = 0
+        self.rot_speed = 0
+
+    def flap(self):
+        if not self.is_dead:
+            self.velocity = self.jump_strength
+
+    def trigger_death(self):
+        self.is_dead = True
+        self.death_vy = -6.5
+        self.death_vx = -2.8
+        self.rot_speed = 18.0
+
+    def update_death(self, ground_y):
+        self.death_vy += 0.35
+        self.y += self.death_vy
+        self.x += self.death_vx
+        self.angle += self.rot_speed
+
+        if self.y + self.radius >= ground_y:
+            self.y = ground_y - self.radius
+            self.death_vy = 0
+            self.death_vx = 0
+            self.rot_speed = 0
+            return True
+        return False
+
+    def update(self):
+        if not self.is_dead:
+            self.velocity += self.gravity
+            if self.velocity > self.max_fall_speed:
+                self.velocity = self.max_fall_speed
+
+            self.y += self.velocity
+            self.wing_frame += 0.25
+
+            target_angle = max(-30, min(70, -self.velocity * 8.5))
+            self.angle += (target_angle - self.angle) * 0.2
+
+    def draw(self, surface, skin):
+        b_surf = pygame.Surface((60, 60), pygame.SRCALPHA)
+        cx, cy = 30, 30
+
+        pygame.draw.ellipse(b_surf, (0, 0, 0, 45), (cx - 16, cy + 12, 32, 10))
+        pygame.draw.circle(b_surf, skin["body_grad_1"], (cx, cy), self.radius)
+        pygame.draw.circle(b_surf, skin["body_grad_2"], (cx - 1, cy - 2), self.radius - 2)
+        pygame.draw.circle(b_surf, skin["body_grad_3"], (cx - 4, cy - 5), self.radius - 7)
+        pygame.draw.ellipse(b_surf, skin["belly"], (cx - 10, cy + 2, 18, 12))
+        pygame.draw.circle(b_surf, skin["blush"], (cx + 3, cy + 6), 4)
+
+        if self.is_dead:
+            ex, ey = cx + 8, cy - 5
+            pygame.draw.line(b_surf, BLACK, (ex - 4, ey - 4), (ex + 4, ey + 4), 2)
+            pygame.draw.line(b_surf, BLACK, (ex - 4, ey + 4), (ex + 4, ey - 4), 2)
+        else:
+            pygame.draw.circle(b_surf, WHITE, (cx + 7, cy - 5), 6)
+            pygame.draw.circle(b_surf, BLACK, (cx + 9, cy - 5), 3)
+            pygame.draw.circle(b_surf, WHITE, (cx + 10, cy - 7), 1.5)
+
+        beak_poly = [(cx + 11, cy - 2), (cx + 23, cy + 2), (cx + 11, cy + 7)]
+        pygame.draw.polygon(b_surf, skin["beak_1"], beak_poly)
+        pygame.draw.polygon(b_surf, skin["beak_2"], [(cx + 11, cy - 2), (cx + 20, cy + 2), (cx + 11, cy + 3)])
+
+        if not self.is_dead:
+            wing_y_offset = math.sin(self.wing_frame) * 4
+        else:
+            wing_y_offset = 6
+        wing_surf = pygame.Surface((20, 14), pygame.SRCALPHA)
+        pygame.draw.ellipse(wing_surf, skin["wing_base"], (0, 0, 18, 12))
+        pygame.draw.ellipse(wing_surf, skin["wing_inner"], (2, 2, 12, 7))
+        b_surf.blit(wing_surf, (cx - 14, cy - 3 + wing_y_offset))
+
+        rotated_surf = pygame.transform.rotozoom(b_surf, self.angle, 1.0)
+        new_rect = rotated_surf.get_rect(center=(int(self.x), int(self.y)))
+        surface.blit(rotated_surf, new_rect.topleft)
+
+    def get_mask_rect(self):
+        return pygame.Rect(self.x - 12, self.y - 12, 24, 24)
+
+
+class Pipe:
+    def __init__(self, x):
+        self.x = x
+        self.width = 66
+        self.gap = 145
+        self.speed = 2.8
+        self.passed = False
+
+        min_top = 70
+        max_top = SCREEN_HEIGHT - 120 - self.gap - 70
+        self.top_height = random.randint(min_top, max_top)
+        self.bottom_y = self.top_height + self.gap
+
+    def update(self):
+        self.x -= self.speed
+
+    def draw_pipe_body(self, surface, rect, theme, is_top=False):
+        x, y, w, h = rect
+        if h <= 0:
+            return
+
+        body_surf = pygame.Surface((w, h))
+        body_surf.fill(theme["pipe_base"])
+
+        pygame.draw.rect(body_surf, theme["pipe_light"], (6, 0, 10, h))
+        pygame.draw.rect(body_surf, theme["pipe_rim"], (10, 0, 4, h))
+        pygame.draw.rect(body_surf, theme["pipe_dark"], (w - 18, 0, 10, h))
+        pygame.draw.rect(body_surf, theme["pipe_shadow"], (w - 8, 0, 8, h))
+        surface.blit(body_surf, (x, y))
+
+        cap_h = 24
+        cap_w = w + 10
+        cap_x = x - 5
+        cap_y = (y + h - cap_h) if is_top else y
+
+        cap_surf = pygame.Surface((cap_w, cap_h))
+        cap_surf.fill(theme["pipe_base"])
+        pygame.draw.rect(cap_surf, theme["pipe_light"], (7, 0, 12, cap_h))
+        pygame.draw.rect(cap_surf, theme["pipe_rim"], (12, 0, 5, cap_h))
+        pygame.draw.rect(cap_surf, theme["pipe_dark"], (cap_w - 20, 0, 12, cap_h))
+        pygame.draw.rect(cap_surf, theme["pipe_shadow"], (cap_w - 8, 0, 8, cap_h))
+        pygame.draw.rect(cap_surf, BLACK, (0, 0, cap_w, cap_h), 2, border_radius=3)
+        surface.blit(cap_surf, (cap_x, cap_y))
+
+    def draw(self, surface, theme):
+        self.draw_pipe_body(surface, (self.x, 0, self.width, self.top_height), theme, is_top=True)
+        bottom_h = (SCREEN_HEIGHT - 90) - self.bottom_y
+        self.draw_pipe_body(surface, (self.x, self.bottom_y, self.width, bottom_h), theme, is_top=False)
+
+    def collides_with(self, bird_rect):
+        top_rect = pygame.Rect(self.x - 3, 0, self.width + 6, self.top_height)
+        bottom_rect = pygame.Rect(self.x - 3, self.bottom_y, self.width + 6, SCREEN_HEIGHT - self.bottom_y)
+        return bird_rect.colliderect(top_rect) or bird_rect.colliderect(bottom_rect)
+
+
+class Ground:
+    def __init__(self):
+        self.height = 90
+        self.y = SCREEN_HEIGHT - self.height
+        self.scroll = 0
+        self.speed = 2.8
+
+    def update(self):
+        self.scroll = (self.scroll - self.speed) % 24
+
+    def draw(self, surface, theme):
+        g_rect = pygame.Rect(0, self.y, SCREEN_WIDTH, self.height)
+        pygame.draw.rect(surface, theme["ground_base"], g_rect)
+        pygame.draw.rect(surface, theme["grass_top"], (0, self.y, SCREEN_WIDTH, 14))
+        pygame.draw.rect(surface, theme["grass_shadow"], (0, self.y + 14, SCREEN_WIDTH, 4))
+
+        for x in range(int(self.scroll) - 24, SCREEN_WIDTH + 24, 18):
+            pygame.draw.polygon(
+                surface,
+                theme["grass_top"],
+                [(x, self.y + 14), (x + 8, self.y + 14), (x + 3, self.y + 24), (x - 5, self.y + 24)]
+            )
+
+        pygame.draw.line(surface, BLACK, (0, self.y), (SCREEN_WIDTH, self.y), 2)
+
+
+# ----------------- IN-GAME SIMULATED CHECKOUT MODAL -----------------
+class SimulatedCheckout:
+    """A safe, purely in-game simulated checkout modal."""
+    def __init__(self, screen_width, screen_height):
+        self.sw = screen_width
+        self.sh = screen_height
+        self.active = False
+        self.selected_item = None
+        self.payment_methods = ["UPI / FastPay", "Card Simulation", "NetBanking"]
+        self.selected_method = 0
+        self.status_message = ""
+        self.status_timer = 0
+
+    def open(self, package):
+        self.active = True
+        self.selected_item = package
+        self.status_message = ""
+        self.status_timer = 0
+
+    def close(self):
+        self.active = False
+        self.selected_item = None
+
+    def handle_click(self, mouse_pos):
+        if not self.active:
+            return None
+
+        tab_y = self.sh // 2 - 30
+        for idx in range(len(self.payment_methods)):
+            tab_rect = pygame.Rect(self.sw // 2 - 140, tab_y + (idx * 44), 280, 36)
+            if tab_rect.collidepoint(mouse_pos):
+                self.selected_method = idx
+                return None
+
+        pay_btn = pygame.Rect(self.sw // 2 - 140, self.sh // 2 + 110, 135, 40)
+        if pay_btn.collidepoint(mouse_pos):
+            reward = self.selected_item["coins"] if self.selected_item else 0
+            self.status_message = f"Success! +{reward} Coins added."
+            self.status_timer = 45
+            return reward
+
+        cancel_btn = pygame.Rect(self.sw // 2 + 5, self.sh // 2 + 110, 135, 40)
+        if cancel_btn.collidepoint(mouse_pos):
+            self.close()
+
+        return None
+
+    def draw(self, surface, font, s_font):
+        if not self.active:
+            return
+
+        dim = pygame.Surface((self.sw, self.sh), pygame.SRCALPHA)
+        dim.fill((0, 0, 0, 185))
+        surface.blit(dim, (0, 0))
+
+        modal_rect = pygame.Rect(self.sw // 2 - 160, self.sh // 2 - 170, 320, 345)
+        pygame.draw.rect(surface, (245, 248, 252), modal_rect, border_radius=18)
+        pygame.draw.rect(surface, (200, 210, 225), modal_rect, width=2, border_radius=18)
+
+        title = font.render("Simulated Checkout", True, (30, 30, 30))
+        surface.blit(title, (modal_rect.centerx - title.get_width() // 2, modal_rect.y + 18))
+
+        if self.selected_item:
+            item_text = s_font.render(
+                f"Item: +{self.selected_item['coins']} Coins ({self.selected_item['price']})",
+                True,
+                (90, 100, 110)
+            )
+            surface.blit(item_text, (modal_rect.centerx - item_text.get_width() // 2, modal_rect.y + 50))
+
+        tab_y = self.sh // 2 - 30
+        for idx, method in enumerate(self.payment_methods):
+            tab_rect = pygame.Rect(self.sw // 2 - 140, tab_y + (idx * 44), 280, 36)
+            is_active = (self.selected_method == idx)
+            bg = (220, 235, 252) if is_active else (255, 255, 255)
+            border = (41, 128, 185) if is_active else (210, 215, 220)
+
+            pygame.draw.rect(surface, bg, tab_rect, border_radius=8)
+            pygame.draw.rect(surface, border, tab_rect, width=2 if is_active else 1, border_radius=8)
+
+            txt_col = (41, 128, 185) if is_active else (60, 60, 60)
+            tab_txt = s_font.render(f"[Simulated] {method}", True, txt_col)
+            surface.blit(tab_txt, (tab_rect.x + 12, tab_rect.y + 9))
+
+        pay_btn = pygame.Rect(self.sw // 2 - 140, self.sh // 2 + 110, 135, 40)
+        pygame.draw.rect(surface, (46, 204, 113), pay_btn, border_radius=8)
+        p_txt = s_font.render("Complete (Free)", True, WHITE)
+        surface.blit(p_txt, (pay_btn.centerx - p_txt.get_width() // 2, pay_btn.centery - p_txt.get_height() // 2))
+
+        cancel_btn = pygame.Rect(self.sw // 2 + 5, self.sh // 2 + 110, 135, 40)
+        pygame.draw.rect(surface, (231, 76, 60), cancel_btn, border_radius=8)
+        c_txt = s_font.render("Cancel", True, WHITE)
+        surface.blit(c_txt, (cancel_btn.centerx - c_txt.get_width() // 2, cancel_btn.centery - c_txt.get_height() // 2))
+
+        if self.status_timer > 0:
+            self.status_timer -= 1
+            status_surf = s_font.render(self.status_message, True, (39, 174, 96))
+            surface.blit(status_surf, (modal_rect.centerx - status_surf.get_width() // 2, modal_rect.bottom - 22))
+            if self.status_timer == 0:
+                self.close()
+
+
+# ----------------- UI HELPERS -----------------
+def draw_panel(surface, rect, radius=16, bg_color=(255, 255, 255, 230), border_color=(255, 255, 255)):
+    panel = pygame.Surface((rect[2], rect[3]), pygame.SRCALPHA)
+    pygame.draw.rect(panel, bg_color, (0, 0, rect[2], rect[3]), border_radius=radius)
+    pygame.draw.rect(panel, border_color, (0, 0, rect[2], rect[3]), 2, border_radius=radius)
+    surface.blit(panel, (rect[0], rect[1]))
+
+
+def draw_glow_text(surface, text, font, color, center_pos, glow_color=(0, 0, 0, 100)):
+    glow_surf = font.render(text, True, glow_color[:3])
+    text_surf = font.render(text, True, color)
+
+    gx = center_pos[0] - glow_surf.get_width() // 2
+    gy = center_pos[1] - glow_surf.get_height() // 2
+
+    surface.blit(glow_surf, (gx + 2, gy + 3))
+    surface.blit(text_surf, (gx, gy))
+
+
+def draw_coin_badge(surface, coins, pos):
+    x, y = pos
+    badge_rect = pygame.Rect(x, y, 110, 36)
+    draw_panel(surface, badge_rect, radius=18, bg_color=(0, 0, 0, 120), border_color=GOLD)
+
+    pygame.draw.circle(surface, GOLD, (x + 18, y + 18), 10)
+    pygame.draw.circle(surface, (255, 240, 120), (x + 16, y + 16), 7)
+    pygame.draw.circle(surface, (180, 140, 0), (x + 18, y + 18), 10, 2)
+
+    coin_txt = hud_font.render(str(coins), True, WHITE)
+    surface.blit(coin_txt, (x + 36, y + 8))
+
+
+def main():
+    bird = Bird(80, SCREEN_HEIGHT // 2)
+    pipes = [Pipe(SCREEN_WIDTH + 80)]
+    ground = Ground()
+    clouds = [
+        Cloud(random.randint(0, SCREEN_WIDTH), random.randint(30, 160), speed=0.4, scale=1.0),
+        Cloud(random.randint(0, SCREEN_WIDTH), random.randint(50, 200), speed=0.7, scale=1.2),
+        Cloud(random.randint(0, SCREEN_WIDTH), random.randint(20, 120), speed=0.3, scale=0.8),
+    ]
+    landscape = DynamicLandscape()
+    particles = []
+    checkout = SimulatedCheckout(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    # Persistence & Stats
+    coins = 150
+    active_skin_idx = 0
+    score = 0
+    checkpoint = 0
+    high_score = 0
+
+    # Theme Management
+    from_theme_idx = 0
+    to_theme_idx = 0
+    blend_progress = 1.0
+    blend_speed = 0.007
+
+    spawn_timer = 0
+    checkpoint_banner_timer = 0
+    theme_banner_timer = 0
+    toast_msg = ""
+    toast_timer = 0
+
+    game_state = "HOME"
+    death_timer = 0
+    screen_shake = 0
+    flash_alpha = 0
+
+    def trigger_toast(msg):
+        nonlocal toast_msg, toast_timer
+        toast_msg = msg
+        toast_timer = 90
+
+    def trigger_player_death():
+        nonlocal game_state, screen_shake, flash_alpha, death_timer, high_score
+        game_state = "DYING"
+        death_timer = 0
+        screen_shake = 14
+        flash_alpha = 200
+        bird.trigger_death()
+
+        skin = SKINS[active_skin_idx]
+        for _ in range(25):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(2, 6)
+            particles.append(
+                Particle(
+                    bird.x, bird.y,
+                    vx=math.cos(angle) * speed,
+                    vy=math.sin(angle) * speed,
+                    color=random.choice([skin["body_grad_1"], skin["body_grad_2"], skin["trail_color"], WHITE]),
+                    radius=random.uniform(3, 7),
+                    decay=0.95,
+                    is_feather=True
+                )
+            )
+        if score > high_score:
+            high_score = score
+
+    def reset_to_checkpoint():
+        nonlocal bird, pipes, particles, score, spawn_timer, checkpoint_banner_timer, theme_banner_timer, game_state
+        bird = Bird(80, SCREEN_HEIGHT // 2)
+        pipes = [Pipe(SCREEN_WIDTH + 80)]
+        particles.clear()
+        score = checkpoint
+        spawn_timer = 0
+        checkpoint_banner_timer = 0
+        theme_banner_timer = 0
+        game_state = "PLAYING"
+        bird.flap()
+
+    def reset_fresh():
+        nonlocal bird, pipes, particles, score, checkpoint, spawn_timer, checkpoint_banner_timer, theme_banner_timer, from_theme_idx, to_theme_idx, blend_progress, game_state
+        bird = Bird(80, SCREEN_HEIGHT // 2)
+        pipes = [Pipe(SCREEN_WIDTH + 80)]
+        particles.clear()
+        score = 0
+        checkpoint = 0
+        from_theme_idx = 0
+        to_theme_idx = 0
+        blend_progress = 1.0
+        spawn_timer = 0
+        checkpoint_banner_timer = 0
+        theme_banner_timer = 0
+        game_state = "PLAYING"
+        bird.flap()
+
+    running = True
+    while running:
+        clock.tick(FPS)
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_click = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                break
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_click = True
+
+            if event.type == pygame.KEYDOWN:
+                if game_state == "PLAYING" and event.key in (pygame.K_SPACE, pygame.K_UP):
+                    bird.flap()
+                    skin = SKINS[active_skin_idx]
+                    for _ in range(4):
+                        particles.append(
+                            Particle(
+                                bird.x - 10, bird.y + 6,
+                                vx=random.uniform(-2, -0.5),
+                                vy=random.uniform(-1, 2),
+                                color=skin["trail_color"],
+                                radius=random.uniform(2, 4)
+                            )
+                        )
+                elif game_state == "GAMEOVER":
+                    if event.key in (pygame.K_SPACE, pygame.K_c):
+                        reset_to_checkpoint()
+                    elif event.key == pygame.K_r:
+                        reset_fresh()
+                    elif event.key == pygame.K_h:
+                        game_state = "HOME"
+                    elif event.key in (pygame.K_q, pygame.K_ESCAPE):
+                        running = False
+
+        # Theme Transition Step
+        if blend_progress < 1.0:
+            blend_progress = min(1.0, blend_progress + blend_speed)
+        current_theme = interpolate_theme(THEMES[from_theme_idx], THEMES[to_theme_idx], blend_progress)
+
+        if screen_shake > 0:
+            screen_shake -= 1
+
+        render_sky(screen, current_theme)
+        for c in clouds:
+            c.update()
+            c.draw(screen, alpha=current_theme["cloud_alpha"])
+        landscape.draw(screen, current_theme)
+
+        # -------------------------------------------------------------
+        # STATE: HOME SCREEN
+        # -------------------------------------------------------------
+        if game_state == "HOME":
+            ground.update()
+            ground.draw(screen, current_theme)
+
+            idle_y = 205 + math.sin(pygame.time.get_ticks() * 0.005) * 8
+            bird.x = SCREEN_WIDTH // 2
+            bird.y = idle_y
+            bird.draw(screen, SKINS[active_skin_idx])
+
+            draw_panel(screen, (SCREEN_WIDTH // 2 - 150, 45, 300, 105), radius=22, bg_color=(0, 0, 0, 120), border_color=(255, 255, 255, 180))
+            draw_glow_text(screen, "FLAPPY BIRD", title_font, WHITE, (SCREEN_WIDTH // 2, 80), (0, 0, 0))
+            draw_glow_text(screen, f"HIGH SCORE: {high_score}", hud_font, GOLD, (SCREEN_WIDTH // 2, 118), (0, 0, 0))
+
+            play_btn = pygame.Rect(SCREEN_WIDTH // 2 - 120, 260, 240, 52)
+            skins_btn = pygame.Rect(SCREEN_WIDTH // 2 - 120, 325, 240, 50)
+            pay_btn = pygame.Rect(SCREEN_WIDTH // 2 - 120, 388, 240, 50)
+            quit_btn = pygame.Rect(SCREEN_WIDTH // 2 - 120, 450, 240, 44)
+
+            draw_panel(screen, play_btn, radius=16, bg_color=EMERALD if play_btn.collidepoint(mouse_pos) else (38, 175, 95), border_color=WHITE)
+            draw_glow_text(screen, "▶ PLAY GAME", hud_font, WHITE, play_btn.center, (20, 100, 50))
+
+            draw_panel(screen, skins_btn, radius=16, bg_color=PURPLE_ACCENT if skins_btn.collidepoint(mouse_pos) else (135, 70, 200), border_color=WHITE)
+            draw_glow_text(screen, "✦ BIRD SKINS", hud_font, WHITE, skins_btn.center, (70, 30, 110))
+
+            draw_panel(screen, pay_btn, radius=16, bg_color=GOLD if pay_btn.collidepoint(mouse_pos) else (215, 175, 10), border_color=WHITE)
+            draw_glow_text(screen, "⚡ GET COINS", hud_font, BLACK if pay_btn.collidepoint(mouse_pos) else WHITE, pay_btn.center, (120, 90, 0))
+
+            draw_panel(screen, quit_btn, radius=16, bg_color=(215, 55, 55) if quit_btn.collidepoint(mouse_pos) else (175, 45, 45), border_color=WHITE)
+            draw_glow_text(screen, "QUIT", small_font, WHITE, quit_btn.center, (100, 20, 20))
+
+            if mouse_click:
+                if play_btn.collidepoint(mouse_pos):
+                    reset_fresh()
+                elif skins_btn.collidepoint(mouse_pos):
+                    game_state = "SKINS"
+                elif pay_btn.collidepoint(mouse_pos):
+                    game_state = "PAYMENT"
+                elif quit_btn.collidepoint(mouse_pos):
+                    running = False
+
+            draw_coin_badge(screen, coins, (SCREEN_WIDTH - 125, 20))
+
+        # -------------------------------------------------------------
+        # STATE: SKINS LOCKER & SHOP
+        # -------------------------------------------------------------
+        elif game_state == "SKINS":
+            ground.draw(screen, current_theme)
+            draw_panel(screen, (20, 25, SCREEN_WIDTH - 40, SCREEN_HEIGHT - 55), radius=22, bg_color=(255, 255, 255, 245), border_color=WHITE)
+            draw_glow_text(screen, "SKINS LOCKER", title_font, BLACK, (SCREEN_WIDTH // 2, 60), (200, 200, 200))
+
+            draw_coin_badge(screen, coins, (SCREEN_WIDTH - 150, 45))
+
+            card_y = 105
+            for idx, s in enumerate(SKINS):
+                card_rect = pygame.Rect(40, card_y, SCREEN_WIDTH - 80, 84)
+                is_equipped = (idx == active_skin_idx)
+
+                border = GOLD if is_equipped else (210, 220, 230)
+                bg = (245, 248, 252) if not is_equipped else (255, 250, 230)
+                draw_panel(screen, card_rect, radius=14, bg_color=bg, border_color=border)
+
+                sample_bird = Bird(75, card_y + 42)
+                sample_bird.draw(screen, s)
+
+                name_surf = hud_font.render(s["name"], True, (30, 30, 30))
+                screen.blit(name_surf, (115, card_y + 18))
+
+                action_btn = pygame.Rect(card_rect.right - 95, card_y + 24, 82, 36)
+                if is_equipped:
+                    draw_panel(screen, action_btn, radius=10, bg_color=(220, 220, 220), border_color=(180, 180, 180))
+                    draw_glow_text(screen, "ACTIVE", small_font, (90, 90, 90), action_btn.center, (240, 240, 240))
+                elif s["unlocked"]:
+                    draw_panel(screen, action_btn, radius=10, bg_color=EMERALD, border_color=WHITE)
+                    draw_glow_text(screen, "EQUIP", small_font, WHITE, action_btn.center, (20, 100, 50))
+                    if mouse_click and action_btn.collidepoint(mouse_pos):
+                        active_skin_idx = idx
+                        trigger_toast(f"Equipped {s['name']}!")
+                else:
+                    can_buy = (coins >= s["price"])
+                    draw_panel(screen, action_btn, radius=10, bg_color=GOLD if can_buy else (180, 180, 180), border_color=WHITE)
+                    draw_glow_text(screen, f"{s['price']} C", small_font, BLACK if can_buy else WHITE, action_btn.center, (180, 140, 0))
+                    if mouse_click and action_btn.collidepoint(mouse_pos):
+                        if can_buy:
+                            coins -= s["price"]
+                            s["unlocked"] = True
+                            active_skin_idx = idx
+                            trigger_toast(f"Unlocked {s['name']}!")
+                        else:
+                            trigger_toast("Need more coins!")
+
+                card_y += 94
+
+            back_btn = pygame.Rect(SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT - 85, 160, 42)
+            draw_panel(screen, back_btn, radius=14, bg_color=(45, 45, 45), border_color=WHITE)
+            draw_glow_text(screen, "← BACK", btn_font, WHITE, back_btn.center, (0, 0, 0))
+            if mouse_click and back_btn.collidepoint(mouse_pos):
+                game_state = "HOME"
+
+        # -------------------------------------------------------------
+        # STATE: PAYMENT & TOP-UP (INTEGRATED CHECKOUT MODAL)
+        # -------------------------------------------------------------
+        elif game_state == "PAYMENT":
+            ground.draw(screen, current_theme)
+            draw_panel(screen, (20, 30, SCREEN_WIDTH - 40, SCREEN_HEIGHT - 65), radius=22, bg_color=(255, 255, 255, 245), border_color=WHITE)
+            draw_glow_text(screen, "COIN SHOP", title_font, BLACK, (SCREEN_WIDTH // 2, 70), (200, 200, 200))
+            draw_glow_text(screen, "Instant Digital Mock Checkout", small_font, (120, 120, 120), (SCREEN_WIDTH // 2, 100), (240, 240, 240))
+
+            draw_coin_badge(screen, coins, (SCREEN_WIDTH - 150, 50))
+
+            packages = [
+                {"coins": 100, "price": "$0.99", "badge": "STARTER", "color": (80, 170, 240)},
+                {"coins": 300, "price": "$1.99", "badge": "POPULAR", "color": GOLD},
+                {"coins": 750, "price": "$3.99", "badge": "BEST VALUE", "color": PURPLE_ACCENT},
+                {"coins": 2000, "price": "$8.99", "badge": "VAULT", "color": CRIMSON},
+            ]
+
+            pack_y = 135
+            for p in packages:
+                p_rect = pygame.Rect(40, pack_y, SCREEN_WIDTH - 80, 80)
+                draw_panel(screen, p_rect, radius=14, bg_color=(245, 248, 252), border_color=(210, 220, 235))
+
+                pygame.draw.circle(screen, GOLD, (75, pack_y + 40), 18)
+                pygame.draw.circle(screen, (255, 240, 120), (73, pack_y + 38), 12)
+                pygame.draw.circle(screen, (180, 140, 0), (75, pack_y + 40), 18, 2)
+
+                amt_txt = hud_font.render(f"+{p['coins']} Coins", True, (20, 20, 20))
+                tag_txt = small_font.render(p["badge"], True, p["color"])
+                screen.blit(amt_txt, (110, pack_y + 20))
+                screen.blit(tag_txt, (110, pack_y + 42))
+
+                buy_btn = pygame.Rect(p_rect.right - 90, pack_y + 22, 78, 36)
+                draw_panel(screen, buy_btn, radius=10, bg_color=EMERALD, border_color=WHITE)
+                draw_glow_text(screen, p["price"], btn_font, WHITE, buy_btn.center, (20, 100, 50))
+
+                # Open simulated checkout modal when a package is clicked
+                if not checkout.active and mouse_click and buy_btn.collidepoint(mouse_pos):
+                    checkout.open(p)
+
+                pack_y += 92
+
+            back_btn = pygame.Rect(SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT - 85, 160, 42)
+            draw_panel(screen, back_btn, radius=14, bg_color=(45, 45, 45), border_color=WHITE)
+            draw_glow_text(screen, "← BACK", btn_font, WHITE, back_btn.center, (0, 0, 0))
+            if not checkout.active and mouse_click and back_btn.collidepoint(mouse_pos):
+                game_state = "HOME"
+
+            # Handle Simulated Modal Clicks & Draw Modal
+            if checkout.active:
+                if mouse_click:
+                    granted = checkout.handle_click(mouse_pos)
+                    if granted:
+                        coins += granted
+                checkout.draw(screen, hud_font, small_font)
+
+        # -------------------------------------------------------------
+        # STATE: ACTIVE GAMEPLAY
+        # -------------------------------------------------------------
+        elif game_state == "PLAYING":
+            bird.update()
+            ground.update()
+
+            spawn_timer += 1
+            if spawn_timer > 105:
+                pipes.append(Pipe(SCREEN_WIDTH + 20))
+                spawn_timer = 0
+
+            for pipe in pipes:
+                pipe.update()
+
+                if not pipe.passed and (pipe.x + pipe.width) < bird.x:
+                    pipe.passed = True
+                    score += 1
+                    coins += 2
+
+                    if score % 10 == 0 and score > 0:
+                        from_theme_idx = to_theme_idx
+                        other_themes = [i for i in range(len(THEMES)) if i != from_theme_idx]
+                        to_theme_idx = random.choice(other_themes)
+                        blend_progress = 0.0
+                        theme_banner_timer = 110
+
+                    if score % 2 == 0 and score > checkpoint:
+                        checkpoint = score
+                        coins += 10
+                        checkpoint_banner_timer = 60
+                        for _ in range(20):
+                            particles.append(
+                                Particle(
+                                    bird.x, bird.y,
+                                    vx=random.uniform(-4, 4),
+                                    vy=random.uniform(-4, 4),
+                                    color=CYAN_ACCENT,
+                                    radius=random.uniform(3, 6)
+                                )
+                            )
+
+            pipes = [p for p in pipes if p.x + p.width > -20]
+
+            if bird.y + bird.radius >= ground.y or bird.y - bird.radius <= 0:
+                trigger_player_death()
+
+            bird_box = bird.get_mask_rect()
+            for pipe in pipes:
+                if pipe.collides_with(bird_box):
+                    trigger_player_death()
+
+            for pipe in pipes:
+                pipe.draw(screen, current_theme)
+            ground.draw(screen, current_theme)
+
+            for p in particles[:]:
+                p.update()
+                p.draw(screen)
+                if p.alpha <= 10 or p.radius <= 0.5:
+                    particles.remove(p)
+
+            bird.draw(screen, SKINS[active_skin_idx])
+
+            draw_panel(screen, (SCREEN_WIDTH // 2 - 60, 20, 120, 52), radius=22, bg_color=(0, 0, 0, 90), border_color=(255, 255, 255, 170))
+            draw_glow_text(screen, str(score), score_font, WHITE, (SCREEN_WIDTH // 2, 42), (0, 0, 0))
+            draw_glow_text(screen, f"FLAG: {checkpoint}", small_font, CYAN_ACCENT, (SCREEN_WIDTH // 2, 62), (0, 0, 0))
+
+            draw_coin_badge(screen, coins, (SCREEN_WIDTH - 125, 20))
+
+            if theme_banner_timer > 0:
+                theme_banner_timer -= 1
+                bw, bh = 300, 42
+                draw_panel(screen, (SCREEN_WIDTH // 2 - bw // 2, 80, bw, bh), radius=14, bg_color=(0, 0, 0, 190), border_color=current_theme["pipe_light"])
+                draw_glow_text(screen, f"BIOME: {current_theme['name'].upper()}", checkpoint_font, current_theme["pipe_rim"], (SCREEN_WIDTH // 2, 101), (0, 0, 0))
+            elif checkpoint_banner_timer > 0:
+                checkpoint_banner_timer -= 1
+                bw, bh = 250, 40
+                draw_panel(screen, (SCREEN_WIDTH // 2 - bw // 2, 80, bw, bh), radius=14, bg_color=(0, 160, 210, 230), border_color=WHITE)
+                draw_glow_text(screen, f"CHECKPOINT +10 COINS!", checkpoint_font, WHITE, (SCREEN_WIDTH // 2, 100), (0, 70, 100))
+
+        # -------------------------------------------------------------
+        # STATE: DYING ANIMATION
+        # -------------------------------------------------------------
+        elif game_state == "DYING":
+            hit_ground = bird.update_death(ground.y)
+            death_timer += 1
+
+            for pipe in pipes:
+                pipe.draw(screen, current_theme)
+            ground.draw(screen, current_theme)
+
+            for p in particles[:]:
+                p.update()
+                p.draw(screen)
+                if p.alpha <= 10 or p.radius <= 0.5:
+                    particles.remove(p)
+
+            bird.draw(screen, SKINS[active_skin_idx])
+
+            if flash_alpha > 0:
+                flash_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                flash_surf.fill((255, 255, 255, int(flash_alpha)))
+                screen.blit(flash_surf, (0, 0))
+                flash_alpha = max(0, flash_alpha - 20)
+
+            if hit_ground or death_timer > 80:
+                game_state = "GAMEOVER"
+
+        # -------------------------------------------------------------
+        # STATE: GAME OVER MENU
+        # -------------------------------------------------------------
+        elif game_state == "GAMEOVER":
+            for pipe in pipes:
+                pipe.draw(screen, current_theme)
+            ground.draw(screen, current_theme)
+            bird.draw(screen, SKINS[active_skin_idx])
+
+            mw, mh = 330, 390
+            mx = SCREEN_WIDTH // 2 - mw // 2
+            my = SCREEN_HEIGHT // 2 - mh // 2 - 10
+            draw_panel(screen, (mx, my, mw, mh), radius=24, bg_color=(255, 255, 255, 245), border_color=WHITE)
+
+            draw_glow_text(screen, "GAME OVER", title_font, CRIMSON, (SCREEN_WIDTH // 2, my + 38), (255, 180, 180))
+
+            draw_panel(screen, (mx + 20, my + 72, mw - 40, 68), radius=14, bg_color=(240, 244, 248), border_color=(210, 220, 230))
+            draw_glow_text(screen, f"Score: {score}   |   Coins: {coins}", hud_font, (50, 50, 50), (SCREEN_WIDTH // 2, my + 94), (200, 200, 200))
+            draw_glow_text(screen, f"Best Run: {high_score}   |   Saved Flag: {checkpoint}", small_font, (90, 100, 110), (SCREEN_WIDTH // 2, my + 120), (220, 220, 220))
+
+            draw_panel(screen, (mx + 20, my + 152, mw - 40, 44), radius=12, bg_color=(0, 168, 255, 220), border_color=(0, 130, 210))
+            draw_glow_text(screen, "[SPACE / C] Continue Checkpoint", small_font, WHITE, (SCREEN_WIDTH // 2, my + 174), (0, 80, 140))
+
+            draw_panel(screen, (mx + 20, my + 204, mw - 40, 44), radius=12, bg_color=(46, 204, 113, 220), border_color=(38, 166, 91))
+            draw_glow_text(screen, "[R] Restart from Score 0", small_font, WHITE, (SCREEN_WIDTH // 2, my + 226), (25, 110, 60))
+
+            draw_panel(screen, (mx + 20, my + 256, mw - 40, 44), radius=12, bg_color=(155, 89, 182, 220), border_color=(142, 68, 173))
+            draw_glow_text(screen, "[H] Return to Home Screen", small_font, WHITE, (SCREEN_WIDTH // 2, my + 278), (80, 30, 100))
+
+            draw_panel(screen, (mx + 20, my + 308, mw - 40, 40), radius=12, bg_color=(235, 75, 75, 220), border_color=(190, 45, 45))
+            draw_glow_text(screen, "[Q / ESC] Quit Game", small_font, WHITE, (SCREEN_WIDTH // 2, my + 328), (130, 25, 25))
+
+        # -------------------------------------------------------------
+        # UNIVERSAL NOTIFICATION TOAST
+        # -------------------------------------------------------------
+        if toast_timer > 0:
+            toast_timer -= 1
+            tw, th = 260, 38
+            draw_panel(screen, (SCREEN_WIDTH // 2 - tw // 2, SCREEN_HEIGHT - 65, tw, th), radius=14, bg_color=(20, 20, 20, 230), border_color=GOLD)
+            draw_glow_text(screen, toast_msg, small_font, WHITE, (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 46), (0, 0, 0))
+
+        pygame.display.flip()
+
+    pygame.quit()
+    sys.exit()
+
+
+if __name__ == "__main__":
+    main() 
